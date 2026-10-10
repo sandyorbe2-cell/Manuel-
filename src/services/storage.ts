@@ -1,10 +1,17 @@
-import { Drama, Episode, MonetizationSettings } from '../types/drama';
+import { Drama, Episode, MonetizationSettings, AppUser } from '../types/drama';
 import { INITIAL_DRAMAS } from '../data/initialDramas';
 import { saveVideoBlob, deleteVideoBlob } from './db';
+
+export const DEFAULT_ADMIN_EMAIL = 'sandyorbe2@gmail.com';
+export const DEFAULT_ADMIN_PASSWORD = 'sandy1290';
+export const SECONDARY_ADMIN_EMAIL = 'sandymanueldone@gmail.com';
 
 const STORAGE_KEY_DRAMAS = 'sanshort_dramas_v1';
 const STORAGE_KEY_FAVORITES = 'sanshort_favorites_v1';
 const STORAGE_KEY_HISTORY = 'sanshort_history_v1';
+const STORAGE_KEY_CURRENT_USER = 'sanshort_current_user_v1';
+const STORAGE_KEY_ADMIN_EMAILS = 'sanshort_admin_emails_v1';
+const STORAGE_KEY_ADMIN_PASSWORD = 'sanshort_admin_password_v1';
 const STORAGE_KEY_ADMIN_PIN = 'sanshort_admin_pin_v1';
 const STORAGE_KEY_ADMIN_SESSION = 'sanshort_admin_session_v1';
 const STORAGE_KEY_MONETIZATION = 'sanshort_monetization_v1';
@@ -169,12 +176,108 @@ export function recordSmartlinkClick(): void {
   }
 }
 
-// Admin authentication helpers
+// Admin & User authentication helpers
+export function getAdminEmails(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ADMIN_EMAILS);
+    const defaults = [DEFAULT_ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL];
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY_ADMIN_EMAILS, JSON.stringify(defaults));
+      return defaults;
+    }
+    const list = JSON.parse(raw);
+    const merged = Array.from(new Set([...defaults, ...(Array.isArray(list) ? list : [])]));
+    localStorage.setItem(STORAGE_KEY_ADMIN_EMAILS, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return [DEFAULT_ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL];
+  }
+}
+
+export function getAdminPassword(): string {
+  return localStorage.getItem(STORAGE_KEY_ADMIN_PASSWORD) || DEFAULT_ADMIN_PASSWORD;
+}
+
+export function verifyAdminPassword(password: string): boolean {
+  if (!password) return false;
+  return password.trim() === getAdminPassword();
+}
+
+export function updateAdminPassword(currentPass: string, newPass: string): boolean {
+  if (verifyAdminPassword(currentPass) && newPass.trim().length >= 4) {
+    localStorage.setItem(STORAGE_KEY_ADMIN_PASSWORD, newPass.trim());
+    return true;
+  }
+  return false;
+}
+
+export function isAdminEmail(email: string): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  const admins = getAdminEmails().map((e) => e.toLowerCase().trim());
+  return admins.includes(clean);
+}
+
+export function getCurrentUser(): AppUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function setCurrentUser(user: AppUser | null): void {
+  try {
+    if (!user) {
+      localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+      localStorage.removeItem(STORAGE_KEY_ADMIN_SESSION);
+    } else {
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+      if (user.role === 'admin') {
+        localStorage.setItem(STORAGE_KEY_ADMIN_SESSION, 'true');
+      } else {
+        localStorage.removeItem(STORAGE_KEY_ADMIN_SESSION);
+      }
+    }
+  } catch (err) {
+    console.error('Error saving current user:', err);
+  }
+}
+
+export function loginUserWithEmail(email: string, name?: string): AppUser {
+  const cleanEmail = email.trim().toLowerCase();
+  const isAdmin = isAdminEmail(cleanEmail);
+  const displayName =
+    name?.trim() ||
+    (cleanEmail === 'sandyorbe2@gmail.com'
+      ? 'Sandy Orbe'
+      : cleanEmail === 'sandymanueldone@gmail.com'
+      ? 'Sandy Manuel'
+      : isAdmin
+      ? 'Administrador SanShort'
+      : cleanEmail.split('@')[0]);
+
+  const user: AppUser = {
+    id: `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    name: displayName,
+    email: cleanEmail,
+    role: isAdmin ? 'admin' : 'user',
+    createdAt: new Date().toISOString(),
+  };
+
+  setCurrentUser(user);
+  return user;
+}
+
 export function getAdminPin(): string {
   return localStorage.getItem(STORAGE_KEY_ADMIN_PIN) || DEFAULT_ADMIN_PIN;
 }
 
 export function isAdminLoggedIn(): boolean {
+  const user = getCurrentUser();
+  if (user && user.role === 'admin') return true;
   return localStorage.getItem(STORAGE_KEY_ADMIN_SESSION) === 'true';
 }
 
@@ -182,6 +285,10 @@ export function loginAdmin(pin: string): boolean {
   const currentPin = getAdminPin();
   if (pin.trim() === currentPin) {
     localStorage.setItem(STORAGE_KEY_ADMIN_SESSION, 'true');
+    // Also set or ensure admin user
+    if (!getCurrentUser()) {
+      loginUserWithEmail(DEFAULT_ADMIN_EMAIL, 'Administrador');
+    }
     return true;
   }
   return false;
@@ -189,6 +296,7 @@ export function loginAdmin(pin: string): boolean {
 
 export function logoutAdmin(): void {
   localStorage.removeItem(STORAGE_KEY_ADMIN_SESSION);
+  localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
 }
 
 export function updateAdminPin(currentPin: string, newPin: string): boolean {

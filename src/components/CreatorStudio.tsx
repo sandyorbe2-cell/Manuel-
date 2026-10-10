@@ -55,7 +55,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({
   const [showImportBox, setShowImportBox] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen || !isAdmin) return null;
 
   const currentDrama = dramas.find((d) => d.id === selectedDramaId) || dramas[0];
 

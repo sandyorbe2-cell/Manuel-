@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-import { Search, Bookmark, PlusCircle, LayoutDashboard, Menu, X, ShieldCheck, Lock, Sparkles, Coins } from 'lucide-react';
+import {
+  Search,
+  Bookmark,
+  PlusCircle,
+  LayoutDashboard,
+  Menu,
+  X,
+  ShieldCheck,
+  User,
+  Sparkles,
+  Coins,
+  Crown,
+} from 'lucide-react';
+import { AppUser } from '../types/drama';
 
 interface HeaderProps {
   favoritesCount: number;
   searchQuery: string;
   isAdmin: boolean;
+  currentUser?: AppUser | null;
   coins?: number;
   onSearchChange: (query: string) => void;
   onOpenUpload: () => void;
@@ -20,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   favoritesCount,
   searchQuery,
   isAdmin,
+  currentUser,
   coins = 0,
   onSearchChange,
   onOpenUpload,
@@ -82,13 +97,16 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             )}
           </button>
-          <button
-            onClick={onOpenStudio}
-            className="flex items-center gap-1.5 hover:text-white transition-colors whitespace-nowrap shrink-0 text-slate-400"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Estudio</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={onOpenStudio}
+              className="flex items-center gap-1.5 hover:text-white transition-colors whitespace-nowrap shrink-0 text-slate-400"
+              title="Panel de Creador (Solo Administrador)"
+            >
+              <LayoutDashboard className="w-4 h-4 text-amber-400" />
+              <span>Estudio</span>
+            </button>
+          )}
         </nav>
 
         {/* Zone 3: Search & Primary Action */}
@@ -121,26 +139,45 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Admin Mode Toggle / Status button */}
+          {/* User Account & Admin Mode button */}
           <button
             onClick={onOpenAdminLogin}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+            className={`flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition-all border ${
               isAdmin
-                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/70 shadow-sm shadow-emerald-500/20'
+                : currentUser
+                ? 'bg-slate-900 border-slate-700 text-slate-200 hover:border-slate-600'
+                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
             }`}
-            title={isAdmin ? 'Modo Administrador Activo' : 'Iniciar sesión como Administrador'}
+            title={
+              isAdmin
+                ? `Administrador: ${currentUser?.email || 'sandyorbe2@gmail.com'}`
+                : currentUser
+                ? `Cuenta: ${currentUser.email}`
+                : 'Iniciar Sesión'
+            }
           >
             {isAdmin ? (
               <>
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">Admin</span>
+                <div className="w-5 h-5 rounded-lg bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-black text-[10px]">
+                  {currentUser?.name ? currentUser.name[0].toUpperCase() : 'A'}
+                </div>
+                <span className="hidden sm:inline font-bold">Admin</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              </>
+            ) : currentUser ? (
+              <>
+                <div className="w-5 h-5 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-[10px]">
+                  {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
+                </div>
+                <span className="hidden sm:inline font-medium truncate max-w-[90px]">
+                  {currentUser.name || currentUser.email.split('@')[0]}
+                </span>
               </>
             ) : (
               <>
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">Acceso Admin</span>
+                <User className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Iniciar Sesión</span>
               </>
             )}
           </button>
@@ -270,16 +307,18 @@ export const Header: React.FC<HeaderProps> = ({
               {favoritesCount}
             </span>
           </button>
-          <button
-            onClick={() => {
-              onOpenStudio();
-              setMobileMenuOpen(false);
-            }}
-            className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 flex items-center gap-2 text-[#FF2E93]"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Estudio Creador</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                onOpenStudio();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 flex items-center gap-2 text-[#FF2E93]"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Estudio Creador</span>
+            </button>
+          )}
           {isAdmin && onOpenMonetization && (
             <button
               onClick={() => {
@@ -299,8 +338,14 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="w-full text-left px-3 py-2 rounded-lg text-slate-200 hover:bg-slate-800 flex items-center gap-2 text-emerald-400"
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>{isAdmin ? 'Modo Administrador (Activo)' : 'Iniciar Sesión Admin'}</span>
+            <User className="w-4 h-4 text-emerald-400" />
+            <span>
+              {isAdmin
+                ? `Administrador (${currentUser?.name || 'Sandy'})`
+                : currentUser
+                ? `Mi Perfil (${currentUser.name})`
+                : 'Iniciar Sesión'}
+            </span>
           </button>
         </div>
       )}

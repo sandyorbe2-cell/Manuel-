@@ -107,8 +107,9 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
     drama.episodes[0] ||
     null;
 
-  // Check if current episode is locked by Rewarded Ad
+  // Check if current episode is locked by Rewarded Ad (Admin has all episodes unlocked)
   const isEpisodeLocked =
+    !isAdmin &&
     monetizationSettings.enabled &&
     (currentEpisode?.episodeNumber || 1) > (monetizationSettings.freeEpisodesCount || 3) &&
     !isUnlocked(drama.id, currentEpisode?.episodeNumber || 1);
@@ -955,6 +956,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                   {filteredEpisodes.map((ep) => {
                     const isActive = ep.episodeNumber === currentEpNumber;
                     const isLocked =
+                      !isAdmin &&
                       monetizationSettings.enabled &&
                       ep.episodeNumber > monetizationSettings.freeEpisodesCount &&
                       !isUnlocked(drama.id, ep.episodeNumber);

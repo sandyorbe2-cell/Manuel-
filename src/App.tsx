@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Drama, VideoSourceType, MonetizationSettings } from './types/drama';
+import { Drama, VideoSourceType, MonetizationSettings, AppUser } from './types/drama';
 import {
   getDramas,
   saveDramas,
@@ -22,6 +22,7 @@ import {
   getUserCoins,
   addCoins,
   spendCoins,
+  getCurrentUser,
 } from './services/storage';
 
 import { Header } from './components/Header';
@@ -57,7 +58,8 @@ export default function App() {
   const [selectedGenre, setSelectedGenre] = useState<string>('Todos');
   const [showCustomOnly, setShowCustomOnly] = useState(false);
 
-  // Admin authentication state
+  // User & Admin authentication state
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
@@ -102,7 +104,9 @@ export default function App() {
     const loadedDramas = getDramas();
     setDramas(loadedDramas);
     setFavorites(getFavorites());
-    setIsAdmin(isAdminLoggedIn());
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    setIsAdmin(user ? user.role === 'admin' : isAdminLoggedIn());
     setMonetizationSettings(getMonetizationSettings());
     setCoins(getUserCoins());
   }, []);
@@ -299,6 +303,16 @@ export default function App() {
     setIsUploadOpen(true);
   };
 
+  // Open Creator Studio Modal with Admin check
+  const handleOpenStudio = () => {
+    if (!isAdmin) {
+      showToast('Acceso restringido: Solo el Administrador puede acceder al Estudio Creador.');
+      setIsAdminModalOpen(true);
+      return;
+    }
+    setIsStudioOpen(true);
+  };
+
   // Add Episode handler (Admin checked)
   const handleAddEpisode = async (
     dramaId: string,
@@ -461,11 +475,12 @@ export default function App() {
         favoritesCount={favorites.length}
         searchQuery={searchQuery}
         isAdmin={isAdmin}
+        currentUser={currentUser}
         coins={coins}
         onSearchChange={setSearchQuery}
         onOpenUpload={() => handleOpenUpload()}
         onOpenFavorites={() => setIsFavoritesOpen(true)}
-        onOpenStudio={() => setIsStudioOpen(true)}
+        onOpenStudio={handleOpenStudio}
         onOpenAdminLogin={() => setIsAdminModalOpen(true)}
         onOpenCoins={() => setIsCoinsModalOpen(true)}
         onOpenMonetization={handleOpenMonetization}
@@ -570,8 +585,8 @@ export default function App() {
         />
       )}
 
-      {/* Creator Studio Modal */}
-      {isStudioOpen && (
+      {/* Creator Studio Modal (Visible exclusively to Admin) */}
+      {isAdmin && isStudioOpen && (
         <CreatorStudio
           isOpen={isStudioOpen}
           onClose={() => setIsStudioOpen(false)}
@@ -611,15 +626,36 @@ export default function App() {
         />
       )}
 
-      {/* Admin Login & Security Modal */}
+      {/* Admin Login & User Account Modal */}
       {isAdminModalOpen && (
         <AdminLoginModal
           isOpen={isAdminModalOpen}
           onClose={() => setIsAdminModalOpen(false)}
           isAdmin={isAdmin}
+          currentUser={currentUser}
+          onUserLogin={(user) => {
+            setCurrentUser(user);
+            setIsAdmin(user.role === 'admin');
+          }}
+          onUserLogout={() => {
+            setCurrentUser(null);
+            setIsAdmin(false);
+          }}
           onAdminStatusChange={setIsAdmin}
           onSuccessMessage={showToast}
           onOpenMonetization={handleOpenMonetization}
+          onOpenUpload={() => {
+            setIsAdminModalOpen(false);
+            handleOpenUpload();
+          }}
+          onOpenStudio={() => {
+            setIsAdminModalOpen(false);
+            setIsStudioOpen(true);
+          }}
+          onOpenBlogger={() => {
+            setIsAdminModalOpen(false);
+            setIsBloggerModalOpen(true);
+          }}
         />
       )}
 

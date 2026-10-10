@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, DollarSign, ExternalLink, ShieldCheck, Check, Sparkles, TrendingUp, Lock, RefreshCw, AlertCircle, Coins } from 'lucide-react';
+import { X, DollarSign, ExternalLink, ShieldCheck, Check, Sparkles, TrendingUp, RefreshCw, AlertCircle, Coins } from 'lucide-react';
 import { MonetizationSettings } from '../types/drama';
 
 interface MonetizationSettingsModalProps {
@@ -325,7 +325,7 @@ export const MonetizationSettingsModal: React.FC<MonetizationSettingsModalProps>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-[#FF2E93]" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#FF2E93]" />
                   <span>Capítulos Gratuitos Iniciales</span>
                 </label>
               </div>

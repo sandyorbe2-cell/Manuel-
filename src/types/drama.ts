@@ -80,6 +80,15 @@ export interface MonetizationSettings {
   unlockedEpisodesCount: number;
   globalSmartlinkEnabled?: boolean; // opens Smartlink when users enter / interact
   globalFrequency?: 'session' | 'interval' | 'every_click';
-  bannerAdEnabled?: boolean; // top sponsor banner visible on main page
+  bannerAdEnabled?: boolean;
+}
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  avatarUrl?: string;
+  createdAt: string;
 }
 
